@@ -1,0 +1,11 @@
+p10-p13出参入参限制:
+    额外定义input_schema和output_schema两个类
+    即再构建图的时候上传参数:
+        builder=StateGraph(state_schema=……,       #全局状态
+                        input_schema=……,          #传入限定入参的类名
+                        output_schema=……)         #传入限定出参的类名
+p14-p22State更新方式的类型
+    在定义状态的时候，限制
+    如：
+        class AddMessagesState(TypedDict):
+            messages: Annotated[List, add_messages]     #消息列表追加

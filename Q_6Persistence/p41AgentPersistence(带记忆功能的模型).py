@@ -1,0 +1,52 @@
+""""""
+"""
+实现方式：
+    1. 创建记忆存储
+        checkpointer = InMemorySaver()
+    2. 创建带记忆的 agent
+        agent = create_agent(model=llm, checkpointer=checkpointer)
+"""
+
+import os
+from langchain.chat_models import init_chat_model
+from langgraph.checkpoint.memory import InMemorySaver
+from langchain.agents import create_agent
+
+
+### ==========定义大模型 ==========
+llm = init_chat_model(
+    model="qwen-plus",
+    model_provider="openai",
+    api_key=os.getenv("aliQwen-api"),
+    temperature=0.0,
+    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
+)
+
+### 定义短期记忆使用内存（生产可以换 RedisSaver/PostgresSaver）
+checkpointer = InMemorySaver()
+agent = create_agent(model=llm,checkpointer=checkpointer)
+
+### 多轮对话配置，同一 thread_id 即同一会话
+config = {"configurable": {"thread_id": "user-001"}}
+#config 是给对话会话创建唯一标识（thread_id），用来区分不同用户的对话记忆。
+
+### 运行
+msg1 = agent.invoke({"messages": [("user", "你好，我叫张三，喜欢足球，60字内简洁回复")]}, config)
+msg1["messages"][-1].pretty_print()
+"""
+user输入："你好，我叫张三，喜欢足球，60字内简洁回复"
+大模型恢复：你好张三！很高兴认识一位足球爱好者，祝你绿茵场上挥洒汗水、享受快乐！
+"""
+print("①"*20)
+
+## 第二轮（继续同一 thread）
+msg2 = agent.invoke({"messages": [("user", "我叫什么？我喜欢做什么？")]}, config)
+msg2["messages"][-1].pretty_print()
+"""
+user输入：""我叫什么？我喜欢做什么？"
+大模型回复：你叫张三，喜欢足球！⚽           #带有记忆功能
+"""
+
+""""
+模型的记忆是有大小限制的，可用 /compact 命令压缩之前的记忆
+"""
